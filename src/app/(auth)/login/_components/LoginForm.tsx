@@ -3,12 +3,59 @@
 import { EyeIcon, EyeSlashIcon, ArrowRightIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
+import { api, ApiError } from "@/lib/api";
+import type { LoginResponse } from "@/types/api";
 
 export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, setIsPending] = useState(false);
+
+  const { login } = useAuth();
+  const router = useRouter();
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError(null);
+
+    const form = e.currentTarget;
+    const email = (form.elements.namedItem("email") as HTMLInputElement).value.trim();
+    const password = (form.elements.namedItem("password") as HTMLInputElement).value;
+
+    if (!email || !password) {
+      setError("Email and password are required.");
+      return;
+    }
+
+    setIsPending(true);
+    try {
+      const data = await api.post<LoginResponse>("/api/auth/login", { email, password });
+      login(data.user, data.sessionToken);
+      router.replace("/dashboard");
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
+        setError("Invalid email or password.");
+      } else {
+        setError("Something went wrong. Please try again.");
+      }
+    } finally {
+      setIsPending(false);
+    }
+  };
 
   return (
-    <form className="space-y-6" noValidate>
+    <form className="space-y-6" noValidate onSubmit={handleSubmit}>
+      {error && (
+        <div
+          role="alert"
+          className="bg-red-50 border border-red-200 text-red-700 text-sm font-medium px-4 py-3 rounded-xl"
+        >
+          {error}
+        </div>
+      )}
+
       {/* Email */}
       <div className="space-y-2">
         <label
@@ -19,6 +66,7 @@ export default function LoginForm() {
         </label>
         <input
           id="email"
+          name="email"
           type="email"
           autoComplete="email"
           placeholder="name@company.com"
@@ -48,6 +96,7 @@ export default function LoginForm() {
         <div className="relative">
           <input
             id="password"
+            name="password"
             type={showPassword ? "text" : "password"}
             autoComplete="current-password"
             placeholder="••••••••"
@@ -86,17 +135,24 @@ export default function LoginForm() {
         </label>
       </div>
 
-      {/* CTA — gradient fill per DESIGN.md */}
+      {/* CTA */}
       <button
         type="submit"
-        className="w-full text-white font-bold py-4 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer hover:brightness-110 active:scale-[0.99]"
+        disabled={isPending}
+        className="w-full text-white font-bold py-4 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer hover:brightness-110 active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
         style={{
           background: "linear-gradient(135deg, #004ac6, #2563eb)",
           boxShadow: "0 8px 24px rgba(0, 74, 198, 0.2)",
         }}
       >
-        <span>Sign In to Dashboard</span>
-        <ArrowRightIcon className="w-4 h-4" />
+        {isPending ? (
+          <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+        ) : (
+          <>
+            <span>Sign In to Dashboard</span>
+            <ArrowRightIcon className="w-4 h-4" />
+          </>
+        )}
       </button>
     </form>
   );

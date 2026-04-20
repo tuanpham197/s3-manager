@@ -2,66 +2,62 @@
 
 import { ArrowDownTrayIcon, FunnelIcon } from "@heroicons/react/24/outline";
 import VideoRow from "./VideoRow";
-import type { Video } from "@/types/video";
-import { useState } from "react";
+import type { Video, VideoStatus } from "@/types/video";
 
-const MOCK_VIDEOS: Video[] = [
-  {
-    id: "1",
-    name: "Brand_Promo_V1_Final.mp4",
-    size: "142.5 MB",
-    duration: "00:45",
-    s3Link: "s3://prod-cdn/vid/829...03.mp4",
-    status: "published",
-    date: "Oct 24, 2023",
-    time: "10:45 AM",
-    thumbnail:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuD0zrK2gC7579EvJIWPlPMQBz88IiWK2yilpAmiYU9kx8I9TpZLo7e9FU1i8_ZTezPZrq-cdSYteqojxSuDsZ2uJLpcxHfbKXTB_pUardL9d4Q0aJunOkDgViPVq1Xn2iBjeFSgrS5kJJ3n0Jciw9abEVejtlLb4OrHzjOj00YZpDfg170H9bqvhAqS7CAjAM5o9lc5pWNpgUkFhuML3HqJmgJLMSeHqKbn9rKZBg1mFkk2JO_GQj3HgG9tGQMSar3Iqg7eSSKgX4c",
-  },
-  {
-    id: "2",
-    name: "Product_Explainer_RAW.mov",
-    size: "2.4 GB",
-    duration: "12:30",
-    s3Link: "s3://prod-cdn/tmp/u91...92.mov",
-    status: "uploading",
-    uploadProgress: 84,
-    date: "Today",
-    time: "02:15 PM",
-    thumbnail:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuCk-EdsonzqnQjDz8cbnkaV7UfcfHtErmbBLVpePlyTjGIse8zXWm9VaQc7B_OxbKqeKn6jb9tig707B7rbLtZjP0FlRwh7xUl3pE_5FCv2hHdugnsO4CSqN_UNbaVHa32T11B1O2O4t1pUurqfkO2BuU5b86ADGnb_sJNwbo_Py4TWkmABJZg7nP2BZtvL-td0jqAzVFxgxP19RCgszONJDCpDof6F9t3Z--gcj0QjupyiDFjYFIcfY9gVPZC-ri-BNoEeRU7PGCk",
-  },
-  {
-    id: "3",
-    name: "Tutorial_Lesson_01.mp4",
-    size: "890 MB",
-    duration: "24:12",
-    s3Link: "s3://prod-cdn/edu/921...84.mp4",
-    status: "published",
-    date: "Oct 21, 2023",
-    time: "09:30 AM",
-    thumbnail:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuAfLVkH7b3egSu-5-Oz7WRxFyuqAPwbU3JLx2WStrK-ZKtQUwnFK4rDPOVuaKuyudrBOuWuagHt7uzkq15m9WMxGryibZfyvdX2-WO8aOjMxJ782lBv7vrj67EaIv6kxTnPjT0HaCmQfpkdkmGeE62Ve983U4-0LEAlOHTotuugn0RNA7VxCihFp9E9jmj7yU4b29par2iTyKqOY2rQT-eLuwQ4hqiPTtJrnwHOUCUJRR9b8RMrVHc7CJx8RuUsLsVNDPGeEYUPZdM",
-  },
-];
+interface Pagination {
+  page: number;
+  limit: number;
+  total: number;
+}
+
+interface VideoTableProps {
+  videos: Video[];
+  pagination: Pagination;
+  isLoading: boolean;
+  statusFilter: string;
+  onStatusChange: (status: string) => void;
+  onPageChange: (page: number) => void;
+  onDeleteVideo: (id: string) => void;
+  onEditVideo: (id: string, name: string) => void;
+}
 
 const STATUS_OPTIONS = ["All", "Published", "Uploading", "Failed"] as const;
 
-export default function VideoTable() {
-  const [statusFilter, setStatusFilter] = useState<string>("All");
+function getStatusParam(filter: string): VideoStatus | undefined {
+  if (filter === "All") return undefined;
+  return filter.toLowerCase() as VideoStatus;
+}
 
-  const filteredVideos = MOCK_VIDEOS.filter((v) => {
-    if (statusFilter === "All") return true;
-    return v.status === statusFilter.toLowerCase();
+export default function VideoTable({
+  videos,
+  pagination,
+  isLoading,
+  statusFilter,
+  onStatusChange,
+  onPageChange,
+  onDeleteVideo,
+  onEditVideo,
+}: VideoTableProps) {
+  const { page, limit, total } = pagination;
+  const totalPages = Math.max(1, Math.ceil(total / limit));
+  const from = total === 0 ? 0 : (page - 1) * limit + 1;
+  const to = Math.min(page * limit, total);
+
+  const pageNumbers = Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+    if (totalPages <= 5) return i + 1;
+    if (page <= 3) return i + 1;
+    if (page >= totalPages - 2) return totalPages - 4 + i;
+    return page - 2 + i;
   });
+
+  // Silence unused import warning — getStatusParam is used by parent but exported for clarity
+  void getStatusParam;
 
   return (
     <section className="bg-[#F1F5F9] rounded-2xl p-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
-          <h2 className="text-xl font-extrabold text-[#1E293B] tracking-tight">
-            Video Library
-          </h2>
+          <h2 className="text-xl font-extrabold text-[#1E293B] tracking-tight">Video Library</h2>
           <p className="text-xs text-[#64748B] font-medium mt-1">
             Manage and distribution console for your S3 assets
           </p>
@@ -73,7 +69,7 @@ export default function VideoTable() {
             <select
               className="bg-transparent outline-none text-xs font-bold text-[#475569] uppercase tracking-wider pr-2 cursor-pointer"
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+              onChange={(e) => onStatusChange(e.target.value)}
               aria-label="Filter by status"
             >
               {STATUS_OPTIONS.map((opt) => (
@@ -93,29 +89,43 @@ export default function VideoTable() {
         </div>
       </div>
 
-      {/* Table */}
       <div className="bg-white rounded-2xl overflow-hidden border border-[#E2E8F0]">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse min-w-[700px]">
             <thead>
               <tr className="border-b border-[#E2E8F0]">
-                {["Video Name", "S3 Public Link", "Status", "Date Uploaded", "Actions"].map(
-                  (col, i) => (
-                    <th
-                      key={col}
-                      className={`px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-[#64748B] ${
-                        i === 4 ? "text-right" : ""
-                      }`}
-                    >
-                      {col}
-                    </th>
-                  )
-                )}
+                {["Video Name", "S3 Public Link", "Status", "Date Uploaded", "Actions"].map((col, i) => (
+                  <th
+                    key={col}
+                    className={`px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-[#64748B] ${
+                      i === 4 ? "text-right" : ""
+                    }`}
+                  >
+                    {col}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-[#F1F5F9]">
-              {filteredVideos.length > 0 ? (
-                filteredVideos.map((video) => <VideoRow key={video.id} video={video} />)
+              {isLoading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <tr key={i}>
+                    {Array.from({ length: 5 }).map((__, j) => (
+                      <td key={j} className="px-6 py-4">
+                        <div className="h-4 bg-[#F1F5F9] rounded animate-pulse" />
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              ) : videos.length > 0 ? (
+                videos.map((video) => (
+                  <VideoRow
+                    key={video.id}
+                    video={video}
+                    onDelete={onDeleteVideo}
+                    onEdit={onEditVideo}
+                  />
+                ))
               ) : (
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center text-sm text-[#94A3B8]">
@@ -127,14 +137,15 @@ export default function VideoTable() {
           </table>
         </div>
 
-        {/* Pagination */}
         <div className="px-6 py-4 border-t border-[#F1F5F9] flex items-center justify-between bg-[#FAFAFA]">
           <p className="text-[10px] font-bold text-[#64748B] uppercase tracking-widest">
-            Showing 1–15 of 1,284 videos
+            {total === 0 ? "No videos" : `Showing ${from}–${to} of ${total.toLocaleString()} videos`}
           </p>
           <div className="flex items-center gap-2">
             <button
-              className="p-2 hover:bg-[#F1F5F9] rounded-lg transition-colors duration-150 text-[#94A3B8] cursor-pointer"
+              onClick={() => onPageChange(page - 1)}
+              disabled={page <= 1 || isLoading}
+              className="p-2 hover:bg-[#F1F5F9] rounded-lg transition-colors duration-150 text-[#94A3B8] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
               aria-label="Previous page"
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
@@ -142,23 +153,27 @@ export default function VideoTable() {
               </svg>
             </button>
             <div className="flex items-center gap-1">
-              {[1, 2, 3].map((page) => (
+              {pageNumbers.map((p) => (
                 <button
-                  key={page}
-                  className={`w-8 h-8 flex items-center justify-center text-[10px] font-bold rounded-lg transition-colors duration-150 cursor-pointer ${
-                    page === 1
+                  key={p}
+                  onClick={() => onPageChange(p)}
+                  disabled={isLoading}
+                  className={`w-8 h-8 flex items-center justify-center text-[10px] font-bold rounded-lg transition-colors duration-150 cursor-pointer disabled:cursor-not-allowed ${
+                    p === page
                       ? "bg-[#2563EB] text-white"
                       : "text-[#64748B] hover:bg-[#F1F5F9]"
                   }`}
-                  aria-label={`Page ${page}`}
-                  aria-current={page === 1 ? "page" : undefined}
+                  aria-label={`Page ${p}`}
+                  aria-current={p === page ? "page" : undefined}
                 >
-                  {page}
+                  {p}
                 </button>
               ))}
             </div>
             <button
-              className="p-2 hover:bg-[#F1F5F9] rounded-lg transition-colors duration-150 text-[#94A3B8] cursor-pointer"
+              onClick={() => onPageChange(page + 1)}
+              disabled={page >= totalPages || isLoading}
+              className="p-2 hover:bg-[#F1F5F9] rounded-lg transition-colors duration-150 text-[#94A3B8] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
               aria-label="Next page"
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>

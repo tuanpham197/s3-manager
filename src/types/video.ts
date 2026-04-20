@@ -5,7 +5,7 @@ export interface Video {
   name: string;
   size: string;
   duration: string;
-  s3Link: string;
+  s3_link: string;
   status: VideoStatus;
   uploadProgress?: number;
   date: string;

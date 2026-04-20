@@ -1,8 +1,26 @@
-import { BellIcon, Cog6ToothIcon, MagnifyingGlassIcon, PlusIcon } from "@heroicons/react/24/outline";
+"use client";
+
+import { BellIcon, Cog6ToothIcon, MagnifyingGlassIcon, PlusIcon, ArrowRightStartOnRectangleIcon } from "@heroicons/react/24/outline";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
+import { api } from "@/lib/api";
 
 export default function Navbar() {
+  const { user, logout } = useAuth();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    try {
+      await api.post("/api/auth/logout");
+    } catch {
+      // proceed regardless
+    }
+    logout();
+    router.replace("/login");
+  };
+
   return (
     <nav className="bg-white/80 backdrop-blur-xl sticky top-0 z-50 border-b border-[#E2E8F0] flex justify-between items-center w-full px-6 py-3">
       <div className="flex items-center gap-8">
@@ -43,10 +61,18 @@ export default function Navbar() {
           >
             <Cog6ToothIcon className="w-5 h-5" />
           </button>
+          <button
+            onClick={handleLogout}
+            className="p-2 text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#DC2626] rounded-lg transition-colors duration-200 cursor-pointer"
+            aria-label="Sign out"
+            title={user ? `Sign out (${user.email})` : "Sign out"}
+          >
+            <ArrowRightStartOnRectangleIcon className="w-5 h-5" />
+          </button>
           <div className="relative w-8 h-8 rounded-full ml-2 overflow-hidden">
             <Image
               src="https://lh3.googleusercontent.com/aida-public/AB6AXuAUhwpwEK4OTz2IuhH-EHq93DgURg0WMp-QwnOPjPt74KWG3mLStVm-h1-EIj_g5ns7oeSDZtjRqFjt2OX5hdN6Pol5Bn_vXkxWzyk2AWrX9tV_pekodGb598NJPhpsnQQVs-Q5qeer9q7bv3C323AWyPz0X_jJSg4d28OTggymGBsV7NmS2F8FIzviXoaLgg9o2XR5tenJNbneZUDjHCY65HrwfanrnggUDSjVmlBsJd04DxVOJIojpKhYmSJpO2lRytnW17iyPuo"
-              alt="User profile"
+              alt={user?.email ?? "User profile"}
               fill
               className="object-cover"
               unoptimized

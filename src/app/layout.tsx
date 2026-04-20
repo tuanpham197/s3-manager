@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import Providers from "./providers";
 
 export const metadata: Metadata = {
   title: "S3 Video Manager",
@@ -14,7 +15,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full antialiased">
       <body className="min-h-full bg-[#f8f9ff] text-[#0b1c30] font-sans">
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   );
